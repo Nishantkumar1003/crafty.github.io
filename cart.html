@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Product Detail - CraftyCorner</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script> <!-- Razorpay script -->
+  <style>
+    /* Existing CSS styles remain unchanged */
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+    nav {
+      background-color: #2c3e50;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+    nav .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 2rem;
+      font-size: 1.1rem;
+      transition: color 0.3s ease;
+    }
+    nav a:hover {
+      color: #f39c12;
+    }
+    main {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #loadingSpinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+      font-size: 2rem;
+      color: #e67e22;
+    }
+    .product-detail {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      width: 80%;
+      max-width: 900px;
+      display: none;
+      padding: 2rem;
+      margin: 2rem 0;
+      flex-direction: row;
+      align-items: center;
+    }
+    .image-container {
+      flex: 1;
+      margin-right: 2rem;
+    }
+    .image-container img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      object-fit: cover;
+      transition: transform 0.3s ease-in-out;
+    }
+    .image-container img:hover {
+      transform: scale(1.05);
+    }
+    .info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .info h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .info p {
+      font-size: 1rem;
+      margin: 0.5rem 0;
+    }
+    .price, .delivery {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #e74c3c;
+    }
+    .rating-stars {
+      font-size: 1.2rem;
+      color: #f39c12;
+    }
+    .total {
+      font-size: 1.2rem;
+      color: #27ae60;
+      margin-top: 1rem;
+    }
+    .btn-buy {
+      background-color: #e74c3c;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease;
+      margin-top: 1rem;
+    }
+    .btn-buy:hover {
+      background-color: #c0392b;
+    }
+    .reviews {
+      margin-top: 2rem;
+      width: 80%;
+      max-width: 900px;
+    }
+    .reviews h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .review {
+      background-color: #ecf0f1;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .review .username {
+      font-weight: bold;
+      color: #34495e;
+    }
+    form {
+      margin-top: 2rem;
+    }
+    form textarea {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    form button {
+      background-color: #27ae60;
+      color: white;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease;
+    }
+    form button:hover {
+      background-color: #2ecc71;
+    }
+    @media (max-width: 768px) {
+      .product-detail {
+        flex-direction: column;
+      }
+      .image-container {
+        margin-right: 0;
+        margin-bottom: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">CraftyCorner</div>
+    <div>
+      <a href="index.html">Home</a>
+      <a href="products.html">Products</a>
+    </div>
+  </nav>
+
+  <main>
+    <div id="loadingSpinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+
+    <div class="product-detail" id="productDetail"></div>
+
+    <div class="reviews" id="reviewSection" style="display: none;">
+      <h3>Customer Reviews</h3>
+      <div id="reviewList"></div>
+      <form id="reviewForm">
+        <h4>Leave a Review:</h4>
+        <textarea id="reviewInput" rows="4" placeholder="Write your review here..." required></textarea>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    const detail = document.getElementById('productDetail');
+    const reviewSection = document.getElementById('reviewSection');
+    const reviewList = document.getElementById('reviewList');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    fetch('products.json')
+      .then(res => res.json())
+      .then(products => {
+        const product = products.find(p => p.id == productId);
+        if (!product) return;
+
+        loadingSpinner.style.display = 'none';
+        detail.style.display = 'flex';
+
+        const fullStars = Math.floor(product.rating);
+        const halfStar = product.rating % 1 >= 0.5;
+        let stars = '';
+        for (let i = 0; i < 5; i++) {
+          if (i < fullStars) {
+            stars += '<i class="fas fa-star"></i>';
+          } else if (i === fullStars && halfStar) {
+            stars += '<i class="fas fa-star-half-alt"></i>';
+          } else {
+            stars += '<i class="far fa-star"></i>';
+          }
+        }
+
+        const totalAmount = parseFloat(product.price.slice(1)) + parseFloat(product.delivery.slice(1));
+        const totalInPaise = totalAmount * 100;
+
+        detail.innerHTML = `
+          <div class="image-container">
+            <img src="${product.image}" alt="${product.name}" />
+          </div>
+          <div class="info">
+            <h2>${product.name}</h2>
+            <p class="price">${product.price}</p>
+            <p class="delivery">Delivery Charges: ${product.delivery}</p>
+            <p class="rating-stars">${stars} (${product.rating}/5)</p>
+            <p class="total">Total: ₹${totalAmount.toFixed(2)}</p>
+            <button class="btn-buy" id="rzp-button">Buy Now</button>
+          </div>
+        `;
+
+        // Show reviews
+        reviewSection.style.display = 'block';
+        product.reviews.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'review';
+          div.innerHTML = `<span class="username">🌟 ${r.username}:</span> ${r.comment}`;
+          reviewList.appendChild(div);
+        });
+
+        // Submit review
+        document.getElementById('reviewForm').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const input = document.getElementById('reviewInput');
+          const newDiv = document.createElement('div');
+          newDiv.className = 'review';
+          newDiv.innerHTML = `<span class="username">🌟 You:</span> ${input.value}`;
+          reviewList.appendChild(newDiv);
+          input.value = '';
+        });
+
+        // Razorpay payment trigger
+        setTimeout(() => {
+          const payBtn = document.getElementById('rzp-button');
+          payBtn.addEventListener('click', function () {
+            const options = {
+              key: "rzp_test_YourTestKeyHere", // Replace this with your test key
+              amount: totalInPaise.toFixed(0), // amount in paise
+              currency: "INR",
+              name: "CraftyCorner",
+              description: "Product Purchase",
+              image: "https://via.placeholder.com/150", // Add your logo URL
+              handler: function (response) {
+                alert("Payment successful! ID: " + response.razorpay_payment_id);
+              },
+              prefill: {
+                name: "Crafty Customer",
+                email: "customer@example.com",
+                contact: "9000000000"
+              },
+              theme: {
+                color: "#e74c3c"
+              }
+            };
+            const rzp1 = new Razorpay(options);
+            rzp1.open();
+          });
+        }, 500);
+      });
+  </script>
+</body>
+</html>
